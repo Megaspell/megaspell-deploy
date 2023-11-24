@@ -4,11 +4,9 @@ services:
   #   Main web NGINX gateway.   #
   ###############################
   megaspell-nginx:
-    image: nginx
+    image: nginx:latest
     container_name: megaspell-nginx
     restart: unless-stopped
-    ports:
-      - "80:80/tcp"
     networks:
       - default
     deploy:
