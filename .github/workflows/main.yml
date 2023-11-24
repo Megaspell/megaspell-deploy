@@ -52,10 +52,10 @@ jobs:
           echo Logging in to ghcr.io
           echo ${{ secrets.GHCR_READ_TOKEN }} | docker login https://ghcr.io --username ${{ secrets.GHCR_USER }} --password-stdin
           echo Deploying...
-          POSTGRES_MASTER_PASSWORD=${{ secrets.POSTGRES_MASTER_PASSWORD }}
-          POSTGRES_MEGASPELL_PASSWORD=${{ secrets.POSTGRES_MEGASPELL_PASSWORD }}
-          GRAFANA_GITHUB_APP_CLIENT_ID=${{ secrets.GRAFANA_GITHUB_APP_CLIENT_ID }}
-          GRAFANA_GITHUB_APP_SECRET=${{ secrets.GRAFANA_GITHUB_APP_SECRET }}
+          export POSTGRES_MASTER_PASSWORD=${{ secrets.POSTGRES_MASTER_PASSWORD }}
+          export POSTGRES_MEGASPELL_PASSWORD=${{ secrets.POSTGRES_MEGASPELL_PASSWORD }}
+          export GRAFANA_GITHUB_APP_CLIENT_ID=${{ secrets.GRAFANA_GITHUB_APP_CLIENT_ID }}
+          export GRAFANA_GITHUB_APP_SECRET=${{ secrets.GRAFANA_GITHUB_APP_SECRET }}
           
           # Always recreate nginx to reset configs
           docker compose pull \

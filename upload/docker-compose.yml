@@ -78,7 +78,7 @@ services:
     container_name: megaspell-blog
     restart: unless-stopped
     depends_on:
-      - nginx
+      - megaspell-nginx
     volumes:
       - deploy-nginx-conf:/etc/nginx/deploy_conf
     deploy:
@@ -95,7 +95,7 @@ services:
     container_name: megaspell-server-registry
     restart: unless-stopped
     depends_on:
-      - nginx
+      - megaspell-nginx
     environment:
       DATABASE_URL: jdbc:postgresql://postgres:5432/megaspell
       DATABASE_USER: megaspell
