@@ -9,8 +9,6 @@ services:
     restart: unless-stopped
     ports:
       - "80:80/tcp"
-    volumes:
-      - ./nginx/html:/usr/share/nginx/html:ro
     networks:
       - default
     deploy:
@@ -79,8 +77,6 @@ services:
     restart: unless-stopped
     depends_on:
       - megaspell-nginx
-    volumes:
-      - deploy-nginx-conf:/etc/nginx/deploy_conf
     deploy:
       resources:
         limits:
