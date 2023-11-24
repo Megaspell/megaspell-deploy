@@ -7,8 +7,6 @@ services:
     image: nginx:latest
     container_name: megaspell-nginx
     restart: unless-stopped
-    networks:
-      - default
     deploy:
       resources:
         limits:
