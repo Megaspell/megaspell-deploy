@@ -1,0 +1,106 @@
+version: "3.8"
+services:
+  ###############################
+  #   Main web NGINX gateway.   #
+  ###############################
+  megaspell-nginx:
+    image: nginx
+    container_name: megaspell-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80/tcp"
+    volumes:
+      - ./nginx/html:/usr/share/nginx/html:ro
+    networks:
+      - default
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+
+  #############################
+  #   Megaspell DB instance   #
+  #############################
+  postgres:
+    image: postgres:15.4-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_MASTER_PASSWORD}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  ################################################
+  #   Megaspell-only prometheus metric storage   #
+  ################################################
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus-metrics:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=90d"
+
+  ##############################
+  #   Megaspell-only grafana   #
+  ##############################
+  grafana:
+    image: grafana/grafana-oss:10.1.2
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_INSTANCE_NAME=megaspell-grafana
+      - GF_SERVER_DOMAIN=megaspell.net
+      - GF_SERVER_ROOT_URL=https://megaspell.net/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_ROUTER_LOGGING=true
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_AUTH_BASIC_ENABLED=false
+      - GF_AUTH_GITHUB_ENABLED=true
+      - GF_AUTH_GITHUB_CLIENT_ID=${GRAFANA_GITHUB_APP_CLIENT_ID}
+      - GF_AUTH_GITHUB_CLIENT_SECRET=${GRAFANA_GITHUB_APP_SECRET}
+      - GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS=Megaspell
+      - GF_AUTH_GITHUB_ALLOW_ASSIGN_GRAFANA_ADMIN=true
+      - GF_AUTH_GITHUB_ROLE_ATTRIBUTE_PATH=[login=='Shimmermare'][0] && 'GrafanaAdmin' || 'Viewer'
+
+  ######################
+  #   Megaspell blog   #
+  ######################
+  megaspell-blog:
+    image: ghcr.io/megaspell/megaspell-blog:latest
+    container_name: megaspell-blog
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    volumes:
+      - deploy-nginx-conf:/etc/nginx/deploy_conf
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 500M
+
+  #################################
+  #   Megaspell server registry   #
+  #################################
+  megaspell-server-registry:
+    image: ghcr.io/megaspell/megaspell-server-registry:latest
+    container_name: megaspell-server-registry
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/megaspell
+      DATABASE_USER: megaspell
+      DATABASE_PASSWORD: "${POSTGRES_MEGASPELL_PASSWORD}"
+
+volumes:
+  postgres-data:
+  prometheus-metrics:

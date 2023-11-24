@@ -1,0 +1,63 @@
+name: Deployment
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checking out files to upload
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: upload
+
+    - name: Login into target server and clear previous upload
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        port: ${{ secrets.DEPLOY_PORT || '22' }}
+        username: ${{ secrets.DEPLOY_USER }}
+        password: ${{ secrets.DEPLOY_PASSWORD || '' }}
+        key: ${{ secrets.DEPLOY_KEY || '' }}
+        script_stop : true
+        script: rm -rf ~/${{ github.event.repository.name || 'safeguard-in-case-no-repo-name' }}/*
+
+    - name: Upload files to target server
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        port: ${{ secrets.DEPLOY_PORT || '22' }}
+        username: ${{ secrets.DEPLOY_USER }}
+        password: ${{ secrets.DEPLOY_PASSWORD || '' }}
+        key: ${{ secrets.DEPLOY_KEY || '' }}
+        source: upload
+        target: ~/${{ github.event.repository.name }}
+        strip_components: 1
+
+    - name: Login into target server and run deploy
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        port: ${{ secrets.DEPLOY_PORT || '22' }}
+        username: ${{ secrets.DEPLOY_USER }}
+        password: ${{ secrets.DEPLOY_PASSWORD || '' }}
+        key: ${{ secrets.DEPLOY_KEY || '' }}
+        script_stop : true
+        script: |
+          cd ~/${{ github.event.repository.name }}
+          echo Logging in to ghcr.io
+          echo ${{ secrets.GHCR_READ_TOKEN }} | docker login https://ghcr.io --username ${{ secrets.GHCR_USER }} --password-stdin
+          echo Deploying...
+          POSTGRES_MASTER_PASSWORD=${{ secrets.POSTGRES_MASTER_PASSWORD }}
+          POSTGRES_MEGASPELL_PASSWORD=${{ secrets.POSTGRES_MEGASPELL_PASSWORD }}
+          GRAFANA_GITHUB_APP_CLIENT_ID=${{ secrets.GRAFANA_GITHUB_APP_CLIENT_ID }}
+          GRAFANA_GITHUB_APP_SECRET=${{ secrets.GRAFANA_GITHUB_APP_SECRET }}
+          
+          # Always recreate nginx to reset configs
+          docker compose pull \
+          && docker compose up --build --detach --no-deps --remove-orphans \
+          && docker compose up --build --force-recreate --detach --no-deps nginx
