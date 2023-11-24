@@ -7,8 +7,8 @@ services:
     image: nginx:latest
     container_name: megaspell-nginx
     restart: unless-stopped
-    volumes:
-      - ./nginx:/etc/nginx/conf.d/:ro
+    #volumes:
+    #  - ./nginx:/etc/nginx/conf.d/:ro
     deploy:
       resources:
         limits:
